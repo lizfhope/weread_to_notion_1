@@ -3,12 +3,14 @@
 import argparse
 import json
 import logging
+import re
 import time
 from notion_client import Client
 import requests
 from requests.utils import cookiejar_from_dict
 from http.cookies import SimpleCookie
 from datetime import datetime
+import hashlib
 
 WEREAD_URL = "https://weread.qq.com/"
 WEREAD_NOTEBOOKS_URL = "https://i.weread.qq.com/user/notebooks"
@@ -16,7 +18,7 @@ WEREAD_BOOKMARKLIST_URL = "https://i.weread.qq.com/book/bookmarklist"
 WEREAD_CHAPTER_INFO = "https://i.weread.qq.com/book/chapterInfos"
 WEREAD_READ_INFO_URL = "https://i.weread.qq.com/book/readinfo"
 WEREAD_REVIEW_LIST_URL = "https://i.weread.qq.com/review/list"
-WEREAD_REVIEW_BOOK_INFO = "https://i.weread.qq.com/book/info"
+WEREAD_BOOK_INFO = "https://i.weread.qq.com/book/info"
 
 
 def parse_cookie_string(cookie_string):
@@ -55,15 +57,14 @@ def get_read_info(bookId):
 
 def get_bookinfo(bookId):
     """获取书的详情"""
-    url = ""
     params = dict(bookId=bookId)
-    r = session.get(url, params=params)
+    r = session.get(WEREAD_BOOK_INFO, params=params)
     isbn = ""
     if r.ok:
         data = r.json()
         isbn = data["isbn"]
-        title = data["title"]
-    return isbn
+        rating = data["newRating"]/1000
+    return (isbn, rating)
 
 
 def get_review_list(bookId):
@@ -186,15 +187,14 @@ def get_chapter_info(bookId):
         'synckeys': [0],
         'teenmode': 0
     }
-    url = 'https://i.weread.qq.com/book/chapterInfos'
-    r = session.post(url, json=body)
+    r = session.post(WEREAD_CHAPTER_INFO, json=body)
     if r.ok and "data" in r.json() and len(r.json()["data"]) == 1 and "updated" in r.json()["data"][0]:
         update = r.json()["data"][0]["updated"]
         return {item["chapterUid"]: item for item in update}
     return None
 
 
-def insert_to_notion(bookName, bookId, cover, sort, author):
+def insert_to_notion(bookName, bookId, cover, sort, author,isbn,rating):
     """插入到notion"""
     time.sleep(0.3)
     parent = {
@@ -204,8 +204,12 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
     properties = {
         "BookName": {"title": [{"type": "text", "text": {"content": bookName}}]},
         "BookId": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
+        "ISBN": {"rich_text": [{"type": "text", "text": {"content": isbn}}]},
+        "URL": {"url": f"https://weread.qq.com/web/reader/{calculate_book_str_id(bookId)}"},
         "Author": {"rich_text": [{"type": "text", "text": {"content": author}}]},
         "Sort": {"number": sort},
+        "类型": {"status": {"name": "书籍"}},
+        "Rating": {"number": rating},
         "Cover": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
     read_info = get_read_info(bookId=bookId)
@@ -219,7 +223,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         minutes = readingTime % 3600 // 60
         if minutes > 0:
             format_time += f"{minutes}分"
-        properties["Status"] = {"select": {
+        properties["状态"] = {"status": {
             "name": "读完" if markedStatus == 4 else "在读"}}
         properties["ReadingTime"] = {"rich_text": [
             {"type": "text", "text": {"content": format_time}}]}
@@ -265,6 +269,8 @@ def get_notebooklist():
         books = data.get("books")
         books.sort(key=lambda x: x["sort"])
         return books
+    else:
+        print(r.text)
     return None
 
 
@@ -326,6 +332,45 @@ def get_children(chapter, summary, bookmark_list):
                 "style"), i.get("colorStyle"), i.get("review").get("reviewId")))
     return children, grandchild
 
+def transform_id(book_id):
+    id_length = len(book_id)
+
+    if re.match("^\d*$", book_id):
+        ary = []
+        for i in range(0, id_length, 9):
+            ary.append(format(int(book_id[i:min(i + 9, id_length)]), 'x'))
+        return '3', ary
+
+    result = ''
+    for i in range(id_length):
+        result += format(ord(book_id[i]), 'x')
+    return '4', [result]
+
+def calculate_book_str_id(book_id):
+    md5 = hashlib.md5()
+    md5.update(book_id.encode('utf-8'))
+    digest = md5.hexdigest()
+    result = digest[0:3]
+    code, transformed_ids = transform_id(book_id)
+    result += code + '2' + digest[-2:]
+
+    for i in range(len(transformed_ids)):
+        hex_length_str = format(len(transformed_ids[i]), 'x')
+        if len(hex_length_str) == 1:
+            hex_length_str = '0' + hex_length_str
+
+        result += hex_length_str + transformed_ids[i]
+
+        if i < len(transformed_ids) - 1:
+            result += 'g'
+
+    if len(result) < 20:
+        result += digest[0:20 - len(result)]
+
+    md5 = hashlib.md5()
+    md5.update(result.encode('utf-8'))
+    result += md5.hexdigest()[0:3]
+    return result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -362,9 +407,10 @@ if __name__ == "__main__":
             bookmark_list.extend(reviews)
             bookmark_list = sorted(bookmark_list, key=lambda x: (
                 x.get("chapterUid", 1), 0 if x.get("range", "") == "" else int(x.get("range").split("-")[0])))
+            isbn,rating = get_bookinfo(bookId)
             children, grandchild = get_children(
                 chapter, summary, bookmark_list)
-            id = insert_to_notion(title, bookId, cover, sort, author)
+            id = insert_to_notion(title, bookId, cover, sort, author,isbn,rating)
             results = add_children(id, children)
             if(len(grandchild)>0 and results!=None):
                 add_grandchild(grandchild, results)
