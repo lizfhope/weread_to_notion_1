@@ -55,17 +55,6 @@ def get_read_info(bookId):
     return None
 
 
-def get_bookinfo(bookId):
-    """获取书的详情"""
-    params = dict(bookId=bookId)
-    r = session.get(WEREAD_BOOK_INFO, params=params)
-    isbn = ""
-    if r.ok:
-        data = r.json()
-        isbn = data["isbn"]
-        rating = data["newRating"]/1000
-    return (isbn, rating)
-
 
 def get_review_list(bookId):
     """获取笔记"""
@@ -149,17 +138,14 @@ def get_callout(content, style, colorStyle, reviewId):
     elif colorStyle == 5:
         color = "yellow"
     return {
-        "type": "callout",
-        "callout": {
+        "type": "bulleted_list_item",
+        "bulleted_list_item": {
             "rich_text": [{
                 "type": "text",
                 "text": {
                     "content": content,
                 }
             }],
-            "icon": {
-                "emoji": emoji
-            },
             "color": color
         }
     }
@@ -194,7 +180,7 @@ def get_chapter_info(bookId):
     return None
 
 
-def insert_to_notion(bookName, bookId, cover, sort, author,isbn,rating):
+def insert_to_notion(bookName, bookId, cover, sort, author):
     """插入到notion"""
     time.sleep(0.3)
     parent = {
@@ -204,13 +190,11 @@ def insert_to_notion(bookName, bookId, cover, sort, author,isbn,rating):
     properties = {
         "BookName": {"title": [{"type": "text", "text": {"content": bookName}}]},
         "BookId": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
-        "ISBN": {"rich_text": [{"type": "text", "text": {"content": isbn}}]},
         "URL": {"url": f"https://weread.qq.com/web/reader/{calculate_book_str_id(bookId)}"},
         "Author": {"rich_text": [{"type": "text", "text": {"content": author}}]},
         "Sort": {"number": sort},
         "类型": {"status": {"name": "书籍"}},
-        "Rating": {"number": rating},
-        "Cover": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
+        "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
     read_info = get_read_info(bookId=bookId)
     if read_info != None:
@@ -228,7 +212,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author,isbn,rating):
         properties["ReadingTime"] = {"rich_text": [
             {"type": "text", "text": {"content": format_time}}]}
         if "finishedDate" in read_info:
-            properties["Date"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
+            properties["读完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
                 "finishedDate")).strftime("%Y-%m-%d %H:%M:%S"), "time_zone": "Asia/Shanghai"}}
 
     icon = {
@@ -407,10 +391,9 @@ if __name__ == "__main__":
             bookmark_list.extend(reviews)
             bookmark_list = sorted(bookmark_list, key=lambda x: (
                 x.get("chapterUid", 1), 0 if x.get("range", "") == "" else int(x.get("range").split("-")[0])))
-            isbn,rating = get_bookinfo(bookId)
             children, grandchild = get_children(
                 chapter, summary, bookmark_list)
-            id = insert_to_notion(title, bookId, cover, sort, author,isbn,rating)
+            id = insert_to_notion(title, bookId, cover, sort, author)
             results = add_children(id, children)
             if(len(grandchild)>0 and results!=None):
                 add_grandchild(grandchild, results)
