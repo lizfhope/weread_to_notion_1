@@ -161,7 +161,8 @@ def parse_book(date, rating, note, status, link,tags):
     dict['出版年']=info[info.index('出版年')+1:info.index('出版年')+2]
     dict['ISBN']=info[info.index('ISBN')+1:]
     cover = soup.find(id='mainpic').img['src']
-    weread = search_book(title)
+    print(dict['ISBN'])
+    weread = search_book(title, dict['ISBN'])
     if(weread==None):
         f = {"property": "URL", "url": {"equals": link}}
         response = client.databases.query(
@@ -286,18 +287,30 @@ def insert_weread_book(weread):
     id = response["id"]
     return id
 
-def search_book(keyword):
+def search_book(title,isbn):
     """搜索书籍"""
     session.get(WEREAD_BASE_URL)
     result = None
     url = "https://i.weread.qq.com/store/search"
-    params = {"count":10,"keyword": keyword}
+    params = {"count":10,"keyword": title}
     r = session.get(url, params=params)
     books = r.json().get("books")
-    if(len(books) > 0):
-        book = books[0]
-        bookId = book["bookInfo"]["bookId"]
-        result = get_bookinfo(bookId=bookId)
+    for book in books:
+        book = book["bookInfo"]
+        #去掉标题中的括号和副标题
+        book["title"]  = re.sub(r'（.+）', '', book["title"]).split("：")[0].strip()
+        bookId = book["bookId"]
+        book["isbn"]  = get_bookinfo(bookId=bookId)
+        new_title = book.get("title")
+        # print(f"title:{new_title} isbn:{book['isbn']}")
+    #优先使用isbn筛选，没有的话用标题筛选
+    l = list(filter(lambda x: x["bookInfo"]["isbn"] == isbn,books))
+    if(len(l) > 0):
+        result = l[0]["bookInfo"]
+    else:
+        l = list(filter(lambda x: x["bookInfo"]["title"] == title,books))
+        if(len(l) > 0):
+            result = l[0]["bookInfo"]
     return result
 
 
@@ -309,8 +322,10 @@ def get_bookinfo(bookId):
     r = session.get(url, params=params)
     isbn = ""
     if r.ok:
-        data = r.json()
-    return data
+        isbn = r.json()["isbn"]
+
+    print(f"bookId:{bookId} isbn:{isbn}")
+    return isbn
 
 
 
@@ -389,7 +404,7 @@ def insert_douban_book(title, date, link, cover, info, rating, note, status,tags
     }
     children = []
     for paragraph in paragraphs:
-        children.append({"object": "block", "type": "paragraph", "paragraph": {"text": [{"type": "text", "text": {"content": paragraph.strip()}}]}})
+        children.append({"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": paragraph.strip()}}]}})
     icon = {
         "type": "external",
         "external": {
