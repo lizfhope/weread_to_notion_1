@@ -85,10 +85,10 @@ def parse_movie_csv():
         reader = csv.DictReader(csvfile)
         for row in reader:
             title = row['\ufeff标题']
-            print(title)
+            # print(title)
             status='看过'
             date = datetime.strptime(row['打分日期'],'%Y/%m/%d')
-            print(date)
+            # print(date)
             rating = rating_dict2[row['个人评分']]
             note = row['我的短评']
             link =row['条目链接'].strip()
@@ -161,7 +161,7 @@ def parse_book(date, rating, note, status, link,tags):
     dict['出版年']=info[info.index('出版年')+1:info.index('出版年')+2]
     dict['ISBN']=info[info.index('ISBN')+1:]
     cover = soup.find(id='mainpic').img['src']
-    print(dict['ISBN'])
+    # print(dict['ISBN'])
     weread = search_book(title, dict['ISBN'])
     if(weread==None):
         f = {"property": "URL", "url": {"equals": link}}
@@ -324,7 +324,7 @@ def get_bookinfo(bookId):
     if r.ok:
         isbn = r.json()["isbn"]
 
-    print(f"bookId:{bookId} isbn:{isbn}")
+    # print(f"bookId:{bookId} isbn:{isbn}")
     return isbn
 
 
