@@ -26,7 +26,7 @@ def parse_cookie_string(cookie_string):
         )
     return cookiejar
 
-url = 'https://www.douban.com/feed/people/malinkang/interests'
+
 WEREAD_READ_INFO_URL = "https://i.weread.qq.com/book/readinfo"
 headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36'}
@@ -369,14 +369,17 @@ if __name__ == "__main__":
     parser.add_argument("weread_cookie")
     parser.add_argument("notion_token")
     parser.add_argument("database_id")
+    parser.add_argument("douban_user_id")
     options = parser.parse_args()
     weread_cookie = options.weread_cookie
     database_id = options.database_id
     notion_token = options.notion_token
+    douban_user_id = options.douban_user_id
     session = requests.Session()
     session.cookies = parse_cookie_string(weread_cookie)
     client = Client(
         auth=notion_token,
         log_level=logging.ERROR
     )
+    url = f'https://www.douban.com/feed/people/{douban_user_id}/interests'
     feed_parser()
