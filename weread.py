@@ -155,7 +155,7 @@ def check(bookId):
     """检查是否已经插入过 如果已经插入了就删除"""
     time.sleep(0.3)
     filter = {
-        "property": "BookId",
+        "property": "Id",
         "rich_text": {
             "equals": bookId
         }
@@ -188,10 +188,10 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         "type": "database_id"
     }
     properties = {
-        "BookName": {"title": [{"type": "text", "text": {"content": bookName}}]},
-        "BookId": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
+        "Name": {"title": [{"type": "text", "text": {"content": bookName}}]},
+        "Id": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
         "URL": {"url": f"https://weread.qq.com/web/reader/{calculate_book_str_id(bookId)}"},
-        "Author": {"rich_text": [{"type": "text", "text": {"content": author}}]},
+        "Author": {"multi_select": [{"name": author}]},
         "Sort": {"number": sort},
         "类型": {"status": {"name": "书籍"}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
@@ -208,7 +208,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         if minutes > 0:
             format_time += f"{minutes}分"
         properties["状态"] = {"status": {
-            "name": "读完" if markedStatus == 4 else "在读"}}
+            "name": "读过" if markedStatus == 4 else "在读"}}
         properties["ReadingTime"] = {"rich_text": [
             {"type": "text", "text": {"content": format_time}}]}
         if "finishedDate" in read_info:
