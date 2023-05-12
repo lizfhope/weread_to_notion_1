@@ -67,16 +67,18 @@ def feed_parser():
         note = ''
         date = datetime(*entry.published_parsed[:6])
         soup = BeautifulSoup(entry['description'],features="html.parser")
-        
+        tags = []
         for p in soup.find_all('p'):
             if '推荐: ' in p.string:
                 rating = rating_dict[p.string.split(": ")[1]]
+            if '标签: ' in p.string:
+                tags = p.string.split(": ")[1].split(' ')
             if '备注: ' in p.string:
                 note = p.string.split(": ")[1]
         if ('看' in status):
-            parse_movie(date, rating, note, status, link)
+            parse_movie(date, rating, note, status, link,tags)
         elif ('读' in status):
-            parse_book(date, rating, note, status, link)
+            parse_book(date, rating, note, status, link,tags)
 
 def parse_movie_csv():
     with open('./data/db-movie-20220918.csv', newline='') as csvfile:
@@ -94,15 +96,20 @@ def parse_movie_csv():
             parse_movie(date, rating, note, status, link)
 
 
-def parse_movie(date, rating, note, status, link):
+def parse_movie(date, rating, note, status, link,tags):
     f = {"property": "URL", "url": {"equals": link}}
     response = client.databases.query(
         database_id=database_id, filter=f)
     if (len(response['results']) > 0):
-        update(date, rating, note, status,response['results'][0]['id'])
+        tags.extend(list(map(lambda x: x['name'],response['results'][0]['properties']['标签']['multi_select'])))
+        update(date, rating, note, status,response['results'][0]['id'],tags)
         return
     response = requests.get(link, headers=headers)
     soup = BeautifulSoup(response.content)
+    intro = soup.find_all('span',class_='all hidden')
+    paragraphs = []
+    if(len(intro)>0):
+       paragraphs=intro[0].text.split("\n")
     title = soup.find(property='v:itemreviewed').string
     year = soup.find('span', {'class': 'year'}).string[1:-1]
     info = soup.find(id='info')
@@ -117,6 +124,7 @@ def parse_movie(date, rating, note, status, link):
         actors = list(map(lambda x: x.string,actor_span.find_all('a')))
     # 类型
     genre = list(map(lambda x: x.string, info.find_all(property='v:genre')))
+    genre.extend(tags)
     country = ''
     imdb = ''
     for span in info.find_all('span', {'class': 'pl'}):
@@ -125,18 +133,31 @@ def parse_movie(date, rating, note, status, link):
         if ('IMDb:' == span.string):
             imdb = 'https://www.imdb.com/title/'+span.next_sibling.string.strip()
     insert_movie(title, date, link, cover, rating, note, status,
-                 year, directors, actors, genre, country, imdb)
+                 year, directors, actors, genre, country, imdb,paragraphs)
 
 
-def parse_book(date, rating, note, status, link):
+def parse_book(date, rating, note, status, link,tags):
     response = requests.get(link, headers=headers)
     soup = BeautifulSoup(response.content)
+    intro = soup.find_all('span',class_='all hidden')
+    paragraphs = []
+    if(len(intro)>0):
+       paragraphs=intro[0].text.split("\n")
     title = soup.find(property='v:itemreviewed').string
     info = soup.find(id='info')
     info = list(map(lambda x: x.replace(':', '').strip(), list(
         filter(lambda x: '\n' not in x, info.strings))))
     dict = {}
-    dict['作者']=info[info.index('作者')+1:info.index('出版社')]
+    index = 0
+    if("出版社") in info:
+        index = info.index("出版社")
+    elif("出版年") in info:
+        index = info.index("出版年")
+    elif("页数") in info:
+        index = info.index("页数")
+    elif("ISBN") in info:
+        index = info.index("ISBN")
+    dict['作者']=info[info.index('作者')+1:index]
     dict['出版年']=info[info.index('出版年')+1:info.index('出版年')+2]
     dict['ISBN']=info[info.index('ISBN')+1:]
     cover = soup.find(id='mainpic').img['src']
@@ -146,9 +167,9 @@ def parse_book(date, rating, note, status, link):
         response = client.databases.query(
         database_id=database_id, filter=f)
         if (len(response['results']) > 0):
-            update(date, rating, note, status,response['results'][0]['id'])
+            update(date, rating, note, status,response['results'][0]['id'],tags)
             return
-        insert_douban_book(title, date, link, cover, dict, rating, note, status)
+        insert_douban_book(title, date, link, cover, dict, rating, note, status,tags,paragraphs)
     else:
         if(not check(weread["bookId"])):
             insert_weread_book(weread)
@@ -293,17 +314,20 @@ def get_bookinfo(bookId):
 
 
 
-def update(date,rating,note, status,page_id):
+def update(date,rating,note, status,page_id,tags):
+    tags  = [{"name": x} for x in tags]
     properties = {
         "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "状态": {"status": {"name": status}},
+        "标签": {"multi_select": tags},
     }
     if note != "":
         properties["概要"] = {"rich_text": [{"type": "text", "text": {"content": note}}]}
     client.pages.update(page_id=page_id, properties=properties)
 
-def insert_movie(title, date, link, cover, rating, note, status, year, directors, actors, genre, country, imdb):
+def insert_movie(title, date, link, cover, rating, note, status, year, directors, actors, genre, country, imdb,paragraphs):
     """插入到notion"""
+    
     time.sleep(0.3)
     parent = {
         "database_id": database_id,
@@ -314,16 +338,22 @@ def insert_movie(title, date, link, cover, rating, note, status, year, directors
 
     # 生成字典列表
     authors = [{"name": x} for x in authors]
+    
+    tags = [{"name": x} for x in genre]
     properties = {
         "Name": {"title": [{"type": "text", "text": {"content": title}}]},
         "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "URL": {"url": link},
         "概要": {"rich_text": [{"type": "text", "text": {"content": note}}]},
         "Author": {"multi_select": authors},
+        "标签": {"multi_select": tags},
         "类型": {"status": {"name": "电影"}},
         "状态": {"status": {"name": status}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
+    children = []
+    for paragraph in paragraphs:
+        children.append({"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": paragraph.strip()}}]}})
     icon = {
         "type": "external",
         "external": {
@@ -331,28 +361,33 @@ def insert_movie(title, date, link, cover, rating, note, status, year, directors
         }
     }
     response = client.pages.create(
-        parent=parent, icon=icon, properties=properties)
+        parent=parent, icon=icon, properties=properties,children=children)
     id = response["id"]
     return id
 
-def insert_douban_book(title, date, link, cover, info, rating, note, status):
+def insert_douban_book(title, date, link, cover, info, rating, note, status,tags,paragraphs):
     """插入到notion"""
     time.sleep(0.3)
     parent = {
         "database_id": database_id,
         "type": "database_id"
     }
-    authors  =  result_list = [{"name": x} for x in info['作者']]
+    tags = [{"name": x} for x in tags]
+    authors   = [{"name": x} for x in info['作者']]
     properties = {
         "Name": {"title": [{"type": "text", "text": {"content": title}}]},
         "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "URL": {"url": link},
         "概要": {"rich_text": [{"type": "text", "text": {"content": note}}]},
         "Author": {"multi_select": authors},
+        "标签": {"multi_select": tags},
         "类型": {"status": {"name": "书籍"}},
         "状态": {"status": {"name": status}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
+    children = []
+    for paragraph in paragraphs:
+        children.append({"object": "block", "type": "paragraph", "paragraph": {"text": [{"type": "text", "text": {"content": paragraph.strip()}}]}})
     icon = {
         "type": "external",
         "external": {
@@ -360,7 +395,7 @@ def insert_douban_book(title, date, link, cover, info, rating, note, status):
         }
     }
     response = client.pages.create(
-        parent=parent, icon=icon, properties=properties)
+        parent=parent, icon=icon, properties=properties,children=children)
     id = response["id"]
     return id
 
