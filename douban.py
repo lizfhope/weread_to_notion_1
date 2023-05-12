@@ -110,6 +110,8 @@ def parse_movie(date, rating, note, status, link,tags):
     paragraphs = []
     if(len(intro)>0):
        paragraphs=intro[0].text.split("\n")
+    if(len(paragraphs)==0):
+        paragraphs= soup.find(property='v:summary').text.split("\n")
     title = soup.find(property='v:itemreviewed').string
     year = soup.find('span', {'class': 'year'}).string[1:-1]
     info = soup.find(id='info')
