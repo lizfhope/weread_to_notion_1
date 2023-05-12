@@ -268,10 +268,10 @@ def insert_weread_book(weread):
             format_time += f"{minutes}分"
         properties["状态"] = {"status": {
             "name": "读过" if markedStatus == 4 else "在读"}}
-        properties["ReadingTime"] = {"rich_text": [
+        properties["用时"] = {"rich_text": [
             {"type": "text", "text": {"content": format_time}}]}
         if "finishedDate" in read_info:
-            properties["读完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
+            properties["看完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
                 "finishedDate")).strftime("%Y-%m-%d %H:%M:%S"), "time_zone": "Asia/Shanghai"}}
 
     icon = {
@@ -317,7 +317,7 @@ def get_bookinfo(bookId):
 def update(date,rating,note, status,page_id,tags):
     tags  = [{"name": x} for x in tags]
     properties = {
-        "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
+        "看完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "状态": {"status": {"name": status}},
         "标签": {"multi_select": tags},
     }
@@ -342,9 +342,10 @@ def insert_movie(title, date, link, cover, rating, note, status, year, directors
     tags = [{"name": x} for x in genre]
     properties = {
         "Name": {"title": [{"type": "text", "text": {"content": title}}]},
-        "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
+        "看完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "URL": {"url": link},
         "概要": {"rich_text": [{"type": "text", "text": {"content": note}}]},
+        "用时": {"rich_text": [{"type": "text", "text": {"content":  date.strftime("%Y-%m-%d %H:%M:%S")}}]},
         "Author": {"multi_select": authors},
         "标签": {"multi_select": tags},
         "类型": {"status": {"name": "电影"}},
@@ -376,9 +377,10 @@ def insert_douban_book(title, date, link, cover, info, rating, note, status,tags
     authors   = [{"name": x} for x in info['作者']]
     properties = {
         "Name": {"title": [{"type": "text", "text": {"content": title}}]},
-        "读完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
+        "看完日期": {"date": {"start": date.strftime("%Y-%m-%d %H:%M:%S"),"time_zone": "Asia/Shanghai"}},
         "URL": {"url": link},
         "概要": {"rich_text": [{"type": "text", "text": {"content": note}}]},
+        "用时": {"rich_text": [{"type": "text", "text": {"content":  date.strftime("%Y-%m-%d %H:%M:%S")}}]},
         "Author": {"multi_select": authors},
         "标签": {"multi_select": tags},
         "类型": {"status": {"name": "书籍"}},

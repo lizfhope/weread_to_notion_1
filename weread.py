@@ -209,10 +209,10 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
             format_time += f"{minutes}分"
         properties["状态"] = {"status": {
             "name": "读过" if markedStatus == 4 else "在读"}}
-        properties["ReadingTime"] = {"rich_text": [
+        properties["用时"] = {"rich_text": [
             {"type": "text", "text": {"content": format_time}}]}
         if "finishedDate" in read_info:
-            properties["读完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
+            properties["看完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
                 "finishedDate")).strftime("%Y-%m-%d %H:%M:%S"), "time_zone": "Asia/Shanghai"}}
 
     icon = {
