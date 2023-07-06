@@ -183,6 +183,7 @@ def get_chapter_info(bookId):
 def insert_to_notion(bookName, bookId, cover, sort, author):
     """插入到notion"""
     time.sleep(0.3)
+    print(f"bookName:{bookName} bookId:{bookId} cover:{cover} sort:{sort} author:{author}")
     parent = {
         "database_id": database_id,
         "type": "database_id"
@@ -191,7 +192,6 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         "Name": {"title": [{"type": "text", "text": {"content": bookName}}]},
         "Id": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
         "URL": {"url": f"https://weread.qq.com/web/reader/{calculate_book_str_id(bookId)}"},
-       
         "Sort": {"number": sort},
         "类型": {"status": {"name": "书籍"}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
