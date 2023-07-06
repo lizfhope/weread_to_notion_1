@@ -386,6 +386,16 @@ def insert_movie(title, date, link, cover, rating, note, status, year, directors
 def insert_douban_book(title, date, link, cover, info, rating, note, status,tags,paragraphs):
     """插入到notion"""
     time.sleep(0.3)
+    print(f"title = {title}")
+    print(f"date = {date}")
+    print(f"link = {link}")
+    print(f"cover = {cover}")
+    print(f"info = {info}")
+    print(f"rating = {rating}")
+    print(f"note = {note}")
+    print(f"status = {status}")
+    print(f"tags = {tags}")
+    print(f"paragraphs = {paragraphs}")
     parent = {
         "database_id": database_id,
         "type": "database_id"
