@@ -183,6 +183,11 @@ def get_chapter_info(bookId):
 def insert_to_notion(bookName, bookId, cover, sort, author):
     """插入到notion"""
     time.sleep(0.3)
+    print(f"bookName = {bookName}")
+    print(f"bookId = {bookId}")
+    print(f"cover = {cover}")
+    print(f"sort = {sort}")
+    print(f"author = {author}")
     parent = {
         "database_id": database_id,
         "type": "database_id"
