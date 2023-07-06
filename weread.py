@@ -183,11 +183,6 @@ def get_chapter_info(bookId):
 def insert_to_notion(bookName, bookId, cover, sort, author):
     """插入到notion"""
     time.sleep(0.3)
-    print(f"bookName = {bookName}")
-    print(f"bookId = {bookId}")
-    print(f"cover = {cover}")
-    print(f"sort = {sort}")
-    print(f"author = {author}")
     parent = {
         "database_id": database_id,
         "type": "database_id"
@@ -196,11 +191,13 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         "Name": {"title": [{"type": "text", "text": {"content": bookName}}]},
         "Id": {"rich_text": [{"type": "text", "text": {"content": bookId}}]},
         "URL": {"url": f"https://weread.qq.com/web/reader/{calculate_book_str_id(bookId)}"},
-        "Author": {"multi_select": [{"name": author}]},
+       
         "Sort": {"number": sort},
         "类型": {"status": {"name": "书籍"}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
+    if author != None:
+        properties["Author"] = {"multi_select": [{"name": author}]}
     read_info = get_read_info(bookId=bookId)
     if read_info != None:
         markedStatus = read_info.get("markedStatus", 0)
