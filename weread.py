@@ -196,7 +196,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         "类型": {"status": {"name": "书籍"}},
         "附件": {"files": [{"type": "external", "name": "Cover", "external": {"url": cover}}]},
     }
-    if author != None:
+    if author != None and author != "":
         properties["Author"] = {"multi_select": [{"name": author}]}
     read_info = get_read_info(bookId=bookId)
     if read_info != None:
