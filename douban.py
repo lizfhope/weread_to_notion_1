@@ -297,22 +297,23 @@ def search_book(title,isbn):
     params = {"count":10,"keyword": title}
     r = session.get(url, params=params)
     books = r.json().get("books")
-    for book in books:
-        book = book["bookInfo"]
-        #去掉标题中的括号和副标题
-        book["title"]  = re.sub(r'（.+）', '', book["title"]).split("：")[0].strip()
-        bookId = book["bookId"]
-        book["isbn"]  = get_bookinfo(bookId=bookId)
-        new_title = book.get("title")
-        # print(f"title:{new_title} isbn:{book['isbn']}")
-    #优先使用isbn筛选，没有的话用标题筛选
-    l = list(filter(lambda x: x["bookInfo"]["isbn"] == isbn,books))
-    if(len(l) > 0):
-        result = l[0]["bookInfo"]
-    else:
-        l = list(filter(lambda x: x["bookInfo"]["title"] == title,books))
+    if books !=None:
+        for book in books:
+            book = book["bookInfo"]
+            #去掉标题中的括号和副标题
+            book["title"]  = re.sub(r'（.+）', '', book["title"]).split("：")[0].strip()
+            bookId = book["bookId"]
+            book["isbn"]  = get_bookinfo(bookId=bookId)
+            new_title = book.get("title")
+            # print(f"title:{new_title} isbn:{book['isbn']}")
+        #优先使用isbn筛选，没有的话用标题筛选
+        l = list(filter(lambda x: x["bookInfo"]["isbn"] == isbn,books))
         if(len(l) > 0):
             result = l[0]["bookInfo"]
+        else:
+            l = list(filter(lambda x: x["bookInfo"]["title"] == title,books))
+            if(len(l) > 0):
+                result = l[0]["bookInfo"]
     return result
 
 
