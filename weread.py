@@ -400,7 +400,7 @@ def update_cover():
     for index, item in enumerate(items):
         print(f"一共{len(items)}个，正在更新第{index+1}个")
         if item.get("properties"):
-            cover = item.get("properties").get("附件")[0]
+            cover = item.get("properties").get("附件").get("files")[0]
             client.databases.update(item.get("id"), cover=cover)
 
 
