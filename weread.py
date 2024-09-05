@@ -394,7 +394,7 @@ def query_all_by_filter(database_id, filter):
 
 
 def update_cover():
-    f = {"property": "类型", "status": {"equal": "书籍"}}
+    f = {"property": "类型", "status": {"equals": "书籍"}}
     items = query_all_by_filter(database_id, f)
     books = get_notebooklist()
     books = {
