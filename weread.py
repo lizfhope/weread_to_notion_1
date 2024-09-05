@@ -404,13 +404,16 @@ def update_cover():
     }
     for index, item in enumerate(items):
         print(f"一共{len(items)}个，正在更新第{index+1}个")
-        bookId = item.get("properties").get("Id").get("rich_text")[0].get("plain_text")
-        cover = books.get(bookId)
-        if cover:
-            cover = cover.replace("/s_", "/t7_")
-            print(cover)
-            cover = {"type": "external", "external": {"url": cover}}
-            client.databases.update(item.get("id"), cover=cover)
+        if item.get("properties").get("Id").get("rich_text"):
+            bookId = item.get("properties").get("Id").get("rich_text")[0].get("plain_text")
+            cover = books.get(bookId)
+            if cover:
+                cover = cover.replace("/s_", "/t7_")
+                print(cover)
+                cover = {"type": "external", "external": {"url": cover}}
+                client.databases.update(item.get("id"), cover=cover)
+        else:
+            print(item.get("properties"))
 
 
 if __name__ == "__main__":
