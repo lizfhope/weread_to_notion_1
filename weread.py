@@ -375,38 +375,6 @@ def calculate_book_str_id(book_id):
     result += md5.hexdigest()[0:3]
     return result
 
-
-def query_all_by_filter(database_id, filter):
-    results = []
-    has_more = True
-    start_cursor = None
-    while has_more:
-        response = client.databases.query(
-            database_id=database_id,
-            filter=filter,
-            start_cursor=start_cursor,
-            page_size=100,
-        )
-        start_cursor = response.get("next_cursor")
-        has_more = response.get("has_more")
-        results.extend(response.get("results"))
-    return results
-
-
-def update_cover():
-    f = {"property": "类型", "status": {"equals": "书籍"}}
-    items = query_all_by_filter(database_id, f)
-    print(f"从Notion中获取{len(items)}条数据")
-    for index, item in enumerate(items):
-        print(f"一共{len(items)}个，正在更新第{index+1}个")
-        if item.get("properties").get("附件").get("files"):
-            cover = item.get("properties").get("附件").get("files")[0].get("external").get("url")
-            print(f"id = {item.get('id')} cover = {cover}")
-            cover = {"type": "external", "external": {"url": cover}}
-            client.pages.update(page_id=item.get("id"), cover=cover)
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("weread_cookie")
@@ -420,7 +388,6 @@ if __name__ == "__main__":
     session.cookies = parse_cookie_string(weread_cookie)
     client = Client(auth=notion_token, log_level=logging.ERROR)
     session.get(WEREAD_URL)
-    update_cover()
     latest_sort = get_sort()
     books = get_notebooklist()
     if books != None:
