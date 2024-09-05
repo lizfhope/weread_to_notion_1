@@ -380,7 +380,7 @@ def insert_movie(title, date, link, cover, rating, note, status, year, directors
         }
     }
     response = client.pages.create(
-        parent=parent, icon=icon, properties=properties,children=children)
+        parent=parent, icon=icon,cover=icon, properties=properties,children=children)
     id = response["id"]
     return id
 
@@ -415,7 +415,7 @@ def insert_douban_book(title, date, link, cover, info, rating, note, status,tags
         }
     }
     response = client.pages.create(
-        parent=parent, icon=icon, properties=properties,children=children)
+        parent=parent, icon=icon,cover=icon, properties=properties,children=children)
     id = response["id"]
     return id
 
