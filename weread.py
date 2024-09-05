@@ -403,7 +403,7 @@ def update_cover():
             cover = item.get("properties").get("附件").get("files")[0].get("external").get("url")
             print(f"id = {item.get('id')} cover = {cover}")
             cover = {"type": "external", "external": {"url": cover}}
-            client.databases.update(item.get("id"), cover=cover)
+            client.databases.update(database_id=item.get("id"), cover=cover)
 
 
 
