@@ -216,7 +216,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
         if "finishedDate" in read_info:
             properties["看完日期"] = {"date": {"start": datetime.utcfromtimestamp(read_info.get(
                 "finishedDate")).strftime("%Y-%m-%d %H:%M:%S"), "time_zone": "Asia/Shanghai"}}
-
+    cover = book.get("cover").replace("/s_", "/t7_")
     icon = {
         "type": "external",
         "external": {
@@ -225,7 +225,7 @@ def insert_to_notion(bookName, bookId, cover, sort, author):
     }
     # notion api 限制100个block
     response = client.pages.create(
-        parent=parent, icon=icon, properties=properties)
+        parent=parent, icon=icon, properties=properties,cover=cover)
     id = response["id"]
     return id
 
@@ -380,8 +380,8 @@ if __name__ == "__main__":
     if (books != None):
         for book in books:
             sort = book["sort"]
-            if sort <= latest_sort:
-                continue
+            # if sort <= latest_sort:
+            #     continue
             book = book.get("book")
             title = book.get("title")
             cover = book.get("cover")
