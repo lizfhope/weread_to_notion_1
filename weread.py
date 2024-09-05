@@ -397,23 +397,12 @@ def update_cover():
     f = {"property": "类型", "status": {"equals": "书籍"}}
     items = query_all_by_filter(database_id, f)
     print(f"从Notion中获取{len(items)}条数据")
-    books = get_notebooklist()
-    print(f"从微信读书中获取{len(books)}条数据")
-    books = {
-        book.get("bookId"): book.get("cover") for book in books
-    }
     for index, item in enumerate(items):
         print(f"一共{len(items)}个，正在更新第{index+1}个")
-        if item.get("properties").get("Id").get("rich_text"):
-            bookId = item.get("properties").get("Id").get("rich_text")[0].get("plain_text")
-            cover = books.get(bookId)
-            if cover:
-                cover = cover.replace("/s_", "/t7_")
-                print(cover)
-                cover = {"type": "external", "external": {"url": cover}}
-                client.databases.update(item.get("id"), cover=cover)
-        else:
-            print(item.get("properties"))
+        if item.get("properties"):
+            cover = item.get("properties").get("附件")[0]
+            client.databases.update(item.get("id"), cover=cover)
+
 
 
 if __name__ == "__main__":
