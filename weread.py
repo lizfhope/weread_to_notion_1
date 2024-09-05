@@ -399,7 +399,7 @@ def update_cover():
     print(f"从Notion中获取{len(items)}条数据")
     for index, item in enumerate(items):
         print(f"一共{len(items)}个，正在更新第{index+1}个")
-        if item.get("properties"):
+        if item.get("properties").get("附件").get("files"):
             cover = item.get("properties").get("附件").get("files")[0].get("external").get("url")
             print(f"id = {item.get('id')} cover = {cover}")
             cover = {"type": "external", "external": {"url": cover}}
